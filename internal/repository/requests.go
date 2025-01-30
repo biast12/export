@@ -19,6 +19,9 @@ var (
 
 	//go:embed sql/requests/list_for_user.sql
 	queryRequestsListForUser string
+
+	//go:embed sql/requests/set_status.sql
+	queryRequestsSetStatus string
 )
 
 func NewRequestRepository(tx pgx.Tx) *RequestRepository {
@@ -95,4 +98,9 @@ func (r *RequestRepository) ListForUser(ctx context.Context, userId uint64) ([]m
 	}
 
 	return requests, nil
+}
+
+func (r *RequestRepository) SetStatus(ctx context.Context, requestId uuid.UUID, status model.RequestStatus) error {
+	_, err := r.tx.Exec(ctx, queryRequestsSetStatus, requestId, status)
+	return err
 }

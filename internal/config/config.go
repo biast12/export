@@ -28,14 +28,33 @@ type (
 
 	WorkerConfig struct {
 		Database DatabaseConfig `envPrefix:"DATABASE_"`
+
+		Daemon struct {
+			Interval        time.Duration `env:"INTERVAL" envDefault:"5s"`
+			DownloadWorkers int           `env:"DOWNLOAD_WORKERS" envDefault:"250"`
+		} `envPrefix:"DAEMON_"`
+
+		S3 S3Config `envPrefix:"S3_"`
+
+		TranscriptS3 struct {
+			Buckets       []string `env:"BUCKETS,required"`
+			EncryptionKey string   `env:"ENCRYPTION_KEY,required"`
+		} `envPrefix:"TRANSCRIPT_S3_"`
 	}
 
 	DatabaseConfig struct {
 		Uri string `env:"URI,required"`
 	}
+
+	S3Config struct {
+		AccessKey string `env:"ACCESS_KEY,required"`
+		SecretKey string `env:"SECRET_KEY,required"`
+		Endpoint  string `env:"ENDPOINT,required"`
+		Region    string `env:"REGION,required"`
+	}
 )
 
-func New() (cfg ApiConfig, err error) {
+func New[T any]() (cfg T, err error) {
 	err = env.Parse(&cfg)
 	return
 }

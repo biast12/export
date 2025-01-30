@@ -20,6 +20,9 @@ var (
 
 	//go:embed sql/task_queue/get_next.sql
 	queryTaskQueueGetNext string
+
+	//go:embed sql/task_queue/delete.sql
+	queryTaskQueueDelete string
 )
 
 func NewTaskRepository(tx pgx.Tx) *TaskRepository {
@@ -59,4 +62,9 @@ func (r *TaskRepository) GetNext(ctx context.Context) (*model.Union[model.Task, 
 	}
 
 	return utils.Ptr(model.NewUnion(task, request)), nil
+}
+
+func (r *TaskRepository) Delete(ctx context.Context, taskId uuid.UUID) error {
+	_, err := r.tx.Exec(ctx, queryTaskQueueDelete, taskId)
+	return err
 }

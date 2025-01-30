@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.New()
+	cfg, err := config.New[config.ApiConfig]()
 	if err != nil {
 		panic(err)
 	}
