@@ -3,8 +3,14 @@ package main
 import (
 	"context"
 	"github.com/TicketsBot/data-self-service/internal/api/router"
+	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/repository"
+	"github.com/TicketsBot/data-self-service/internal/utils"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	s3Config "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"log/slog"
 	"net/http"
 	"os"
@@ -32,9 +38,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	s3Cfg, err := s3Config.LoadDefaultConfig(setupCtx, s3Config.WithCredentialsProvider(aws.NewCredentialsCache(
+		credentials.NewStaticCredentialsProvider(cfg.S3.AccessKey, cfg.S3.SecretKey, ""))),
+		s3Config.WithBaseEndpoint(cfg.S3.Endpoint),
+		s3Config.WithRegion(cfg.S3.Region))
+	if err != nil {
+		logger.Error("Failed to load S3 config", "error", err)
+		os.Exit(1)
+	}
+
+	s3Client := s3.NewFromConfig(s3Cfg)
+	artifacts := artifactstore.NewS3ArtifactStore(
+		logger.With("component", "artifactstore"),
+		s3Client, cfg.ArtifactStore.Bucket, []byte(cfg.ArtifactStore.EncryptionKey))
+
 	cancel()
 
-	router := router.New(logger, cfg, repository)
+	publicKey, err := utils.LoadPublicKeyFromDisk(cfg.PublicKeyPath)
+	if err != nil {
+		logger.Error("Failed to load key", "error", err)
+		os.Exit(1)
+	}
+
+	router := router.New(logger, cfg, repository, artifacts, publicKey)
 
 	server := &http.Server{
 		Addr:    cfg.Server.Address,

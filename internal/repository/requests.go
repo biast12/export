@@ -3,7 +3,9 @@ package repository
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"github.com/TicketsBot/data-self-service/internal/model"
+	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"time"
@@ -19,6 +21,9 @@ var (
 
 	//go:embed sql/requests/list_for_user.sql
 	queryRequestsListForUser string
+
+	//go:embed sql/requests/get_by_id.sql
+	queryRequestsGetById string
 
 	//go:embed sql/requests/set_status.sql
 	queryRequestsSetStatus string
@@ -100,7 +105,49 @@ func (r *RequestRepository) ListForUser(ctx context.Context, userId uint64) ([]m
 	return requests, nil
 }
 
+func (r *RequestRepository) GetById(ctx context.Context, requestId uuid.UUID) (*model.RequestWithArtifact, error) {
+	var request model.Request
+
+	var (
+		artifactId        *uuid.UUID
+		artifactRequestId *uuid.UUID
+		artifactKey       *string
+		artifactExpiresAt *time.Time
+	)
+
+	if err := r.tx.QueryRow(ctx, queryRequestsGetById, requestId).Scan(
+		&request.Id,
+		&request.UserId,
+		&request.Type,
+		&request.CreatedAt,
+		&request.GuildId,
+		&request.Status,
+		&artifactId,
+		&artifactRequestId,
+		&artifactKey,
+		&artifactExpiresAt,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	var artifact *model.Artifact
+	if artifactId != nil {
+		artifact = &model.Artifact{
+			Id:        *artifactId,
+			RequestId: *artifactRequestId,
+			Key:       *artifactKey,
+			ExpiresAt: *artifactExpiresAt,
+		}
+	}
+
+	return utils.Ptr(model.NewRequestWithArtifact(request, artifact)), nil
+}
+
 func (r *RequestRepository) SetStatus(ctx context.Context, requestId uuid.UUID, status model.RequestStatus) error {
-	_, err := r.tx.Exec(ctx, queryRequestsSetStatus, requestId, status)
+	_, err := r.tx.Exec(ctx, queryRequestsSetStatus, status, requestId)
 	return err
 }

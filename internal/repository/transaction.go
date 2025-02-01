@@ -9,6 +9,7 @@ type TransactionContext interface {
 	Rollback(ctx context.Context) error
 	Requests() *RequestRepository
 	Tasks() *TaskRepository
+	Artifacts() *ArtifactRepository
 }
 
 type PostgresTransactionContext struct {
@@ -29,4 +30,8 @@ func (t *PostgresTransactionContext) Requests() *RequestRepository {
 
 func (t *PostgresTransactionContext) Tasks() *TaskRepository {
 	return NewTaskRepository(t.tx)
+}
+
+func (t *PostgresTransactionContext) Artifacts() *ArtifactRepository {
+	return NewArtifactRepository(t.tx)
 }

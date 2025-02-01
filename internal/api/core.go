@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/go-playground/validator/v10"
@@ -15,18 +16,21 @@ type Core struct {
 	Config     config.ApiConfig
 	Repository *repository.Repository
 	Validator  *validator.Validate
+	Artifacts  artifactstore.ArtifactStore
 }
 
 func NewCore(
 	logger *slog.Logger,
 	config config.ApiConfig,
 	repository *repository.Repository,
+	artifacts artifactstore.ArtifactStore,
 ) *Core {
 	return &Core{
 		Logger:     logger,
 		Config:     config,
 		Repository: repository,
 		Validator:  validator.New(),
+		Artifacts:  artifacts,
 	}
 }
 

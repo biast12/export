@@ -2,7 +2,9 @@ package worker
 
 import (
 	"context"
+	"crypto/ed25519"
 	"fmt"
+	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
@@ -14,8 +16,10 @@ import (
 type Daemon struct {
 	logger      *slog.Logger
 	config      config.WorkerConfig
+	privateKey  ed25519.PrivateKey
 	repository  *repository.Repository
 	transcripts transcriptstore.Client
+	artifacts   artifactstore.ArtifactStore
 
 	shutdownCh chan struct{}
 }
@@ -23,19 +27,24 @@ type Daemon struct {
 func NewDaemon(
 	logger *slog.Logger,
 	config config.WorkerConfig,
+	privateKey ed25519.PrivateKey,
 	repository *repository.Repository,
 	transcripts transcriptstore.Client,
+	artifacts artifactstore.ArtifactStore,
 ) *Daemon {
 	return &Daemon{
 		logger:      logger,
 		config:      config,
+		privateKey:  privateKey,
 		repository:  repository,
 		transcripts: transcripts,
+		artifacts:   artifacts,
 		shutdownCh:  make(chan struct{}),
 	}
 }
 
 func (d *Daemon) Start() {
+	d.logger.Info("Starting daemon", slog.Duration("interval", d.config.Daemon.Interval))
 	ticker := time.NewTicker(d.config.Daemon.Interval)
 
 	for {
@@ -46,7 +55,12 @@ func (d *Daemon) Start() {
 			task, err := d.getNextTask(context.Background())
 			if err != nil {
 				d.logger.Error("Failed to get next task", err)
-				time.Sleep(d.config.Daemon.Interval)
+				ticker.Reset(d.config.Daemon.Interval)
+				continue
+			}
+
+			if task == nil {
+				ticker.Reset(d.config.Daemon.Interval)
 				continue
 			}
 
@@ -86,8 +100,7 @@ func (d *Daemon) handleNext(ctx context.Context, next *model.Union[model.Task, m
 	request := next.Second
 
 	d.logger.Info("Handling task", slog.String("request_id", request.Id.String()),
-		slog.String("type", string(request.Type)), slog.Uint64("user_id", request.UserId),
-		slog.Any("guild_id", request.GuildId))
+		slog.String("type", string(request.Type)), slog.Uint64("user_id", request.UserId))
 
 	switch request.Type {
 	case model.RequestTypeGuildTranscripts:

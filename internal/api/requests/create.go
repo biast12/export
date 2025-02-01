@@ -32,19 +32,28 @@ func (a *API) CreateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}); err != nil {
 		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to fetch requests"))
+		return
 	}
 
 	for _, request := range pastRequests {
+		if request.Request.Type != body.RequestType {
+			continue
+		}
+
+		if request.Request.GuildId != nil && *request.Request.GuildId != *body.GuildId {
+			continue
+		}
+
 		if request.Request.Status == model.RequestStatusQueued {
 			a.RespondJson(w, http.StatusBadRequest, utils.Map{
-				"error": "You already have a request queued",
+				"error": "You already have a request queued for this server",
 			})
 			return
 		}
 
 		if request.Request.CreatedAt.Before(time.Now().Add(-time.Hour * 24)) {
 			a.RespondJson(w, http.StatusBadRequest, utils.Map{
-				"error": "You have already made a request in the last 24 hours",
+				"error": "You have already made a request for this server in the last 24 hours",
 			})
 			return
 		}

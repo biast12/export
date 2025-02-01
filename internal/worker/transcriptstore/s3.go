@@ -44,6 +44,10 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 
 	c.logger.Info("Found transcripts for guild", slog.Uint64("guild_id", guildId), slog.Int("transcript_count", transcriptCount))
 
+	if transcriptCount > 500_000 {
+		return nil, fmt.Errorf("too many transcripts for guild %d: %d", guildId, transcriptCount)
+	}
+
 	prefix := fmt.Sprintf("%d/", guildId)
 
 	type object struct {
@@ -94,7 +98,6 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 				c.logger.Debug("Downloaded transcript", slog.Uint64("guild_id", guildId), slog.Int("ticket_id", ticketId))
 				mu.Unlock()
 			}
-
 			return nil
 		})
 	}

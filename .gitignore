@@ -1,2 +1,4 @@
 .env
 .idea/
+key.pem
+key.pem.pub

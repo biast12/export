@@ -26,7 +26,9 @@ CREATE TABLE artifacts
     request_id uuid         NOT NULL UNIQUE,
     key        VARCHAR(255) NOT NULL,
     expires_at TIMESTAMPTZ  NOT NULL,
+    size       int8         NOT NULL,
     FOREIGN KEY (request_id) REFERENCES requests (id)
 );
 
 CREATE INDEX artifacts_request_id_idx ON artifacts (request_id);
+CREATE INDEX artifacts_expires_at_idx ON artifacts (expires_at);

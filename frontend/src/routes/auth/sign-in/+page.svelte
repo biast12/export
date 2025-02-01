@@ -68,5 +68,5 @@
     import Tooltip from "$lib/components/Tooltip.svelte";
 
     const REDIRECT_URI = encodeURIComponent(`${PUBLIC_ROOT_URL}/auth/callback`);
-    const OAUTH_URL = `https://discord.com/oauth2/authorize?response_type=code&redirect_uri=${REDIRECT_URI}&scope=identify&client_id=${PUBLIC_APPLICATION_ID}`;
+    const OAUTH_URL = `https://discord.com/oauth2/authorize?response_type=code&redirect_uri=${REDIRECT_URI}&scope=identify+guilds&client_id=${PUBLIC_APPLICATION_ID}`;
 </script>

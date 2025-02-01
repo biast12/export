@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/TicketsBot/data-self-service/internal/api"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/TicketsBot/data-self-service/internal/api/constants"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwe"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,11 +18,6 @@ import (
 
 type ExchangeBody struct {
 	Code string `json:"code" validate:"required"`
-}
-
-type Claims struct {
-	jwt.RegisteredClaims
-	OwnedGuilds []string `json:"owned_guilds"`
 }
 
 const DiscordApiVersion = 10
@@ -62,20 +60,28 @@ func (a *API) Exchange(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "data-self-service",
-			Subject:   strconv.FormatUint(userId, 10),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.Config.Jwt.Expiry)),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		OwnedGuilds: ownedGuilds,
-	})
+	token, tokenErr := jwt.NewBuilder().
+		Issuer("https://export.ticketsbot.net").
+		IssuedAt(time.Now()).
+		Subject(strconv.FormatUint(userId, 10)).
+		Expiration(time.Now().Add(a.Config.Jwt.Expiry)).
+		NotBefore(time.Now()).
+		Claim(constants.JwtClaimOwnedGuilds, ownedGuilds).
+		Build()
+	if tokenErr != nil {
+		a.HandleError(r.Context(), w, api.NewError(tokenErr, http.StatusInternalServerError, "Failed to issue token"))
+		return
+	}
 
-	signed, signErr := token.SignedString([]byte(a.Config.Jwt.Secret))
+	signed, signErr := jwt.Sign(token, jwt.WithKey(jwa.HS256(), []byte(a.Config.Jwt.Secret)))
 	if signErr != nil {
-		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to sign token"))
+		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to issue token"))
+		return
+	}
+
+	encrypted, encryptErr := jwe.Encrypt(signed, jwe.WithKey(jwa.DIRECT(), []byte(a.Config.Jwt.EncryptionKey)))
+	if encryptErr != nil {
+		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to issue token"))
 		return
 	}
 
@@ -84,7 +90,8 @@ func (a *API) Exchange(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]any{
-		"token": signed,
+		"token":  encrypted,
+		"guilds": guilds,
 	})
 }
 

@@ -1,11 +1,11 @@
 <main>
     <div class="new-task">
         <Card>
-            <span slot="header">Export / Remove Data</span>
+            <span slot="header">Export Data</span>
             <span slot="content" class="description">
                 <div>
                     <span>
-                        You can request to export or remove your data from our servers at any time. Please select an
+                        You can request to export your data from our servers at any time. Please select an
                         action below to get started.
                     </span>
 
@@ -28,21 +28,28 @@
                         <div>
                             <div>
                                 <span class="name">{REQUEST_NAMES[request.type]}</span>
-                                {#if request.status === "complete"}
+                                {#if request.status === "completed"}
                                     <div class="status-row">
                                         <span class="status complete">Complete</span>
 
-                                        {#if request.is_export}
-                                            {#if new Date(request.download_expires) > new Date()}
-                                                <span><a href="{request.download_url}" class="download">Download</a>
-                                                (Expires in {formatExpiry(new Date(request.download_expires))})</span>
-                                            {:else}
-                                                <span>Download link has expired</span>
-                                            {/if}
-                                        {/if}
+                                      {#if new Date(request.artifact_expires_at) > new Date()}
+                                                <span>
+                                                  <a href="{request.download_url}" class="download" on:click={() => downloadArtifact(request.id)}>
+                                                    <i class="fa-solid fa-download"></i>
+                                                    Download
+                                                  </a>
+                                                  (Expires in {formatExpiry(new Date(request.artifact_expires_at))})
+                                                </span>
+                                      {:else}
+                                        <span>Download link has expired</span>
+                                      {/if}
                                     </div>
-                                {:else}
+                                {:else if request.status === "queued"}
                                     <span class="status in-progress">In Progress</span>
+                                {:else if request.status === "failed"}
+                                    <span class="status failed">Failed</span>
+                                {:else}
+                                  <span class="status">Unknown</span>
                                 {/if}
 
                                 {#if request.guild_id}
@@ -158,6 +165,10 @@
         color: darkorange;
     }
 
+    .status.failed {
+      color: darkred;;
+    }
+
     .download {
         color: #3472f7;
         cursor: pointer;
@@ -185,8 +196,8 @@
 <script>
     import Card from "$lib/components/Card.svelte";
     import {goto} from "$app/navigation";
-    import {PUBLIC_BACKEND_URI} from "$env/static/public";
     import {onMount} from "svelte";
+    import {client} from "$lib/axios.js";
 
     const REQUEST_NAMES = {
       guild_transcripts: "Export Server Transcripts"
@@ -194,15 +205,34 @@
 
     let requests = [];
 
-    async function loadRequests(code) {
-      const res = await fetch(`${PUBLIC_BACKEND_URI}/requests`, {
+    async function loadRequests() {
+      const res = await client.get("/requests");
+      if (res.status === 200) {
+        requests = res.data;
+      }
+    }
+
+    async function downloadArtifact(requestId) {
+      const res = await client({
+        url: `/requests/${requestId}/artifact`,
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
+        responseType: "blob"
       });
-      if (res.ok) {
-        requests = await res.json();
+
+      if (res.status === 200) {
+        const href = URL.createObjectURL(res.data);
+        const link = document.createElement('a');
+        link.href = href;
+        link.setAttribute('download', `export-${requestId}.zip`);
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+      } else {
+        const json = await res.json();
+        alert(json.error);
       }
     }
 

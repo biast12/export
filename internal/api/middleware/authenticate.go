@@ -3,9 +3,12 @@ package middleware
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/TicketsBot/data-self-service/internal/api"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/TicketsBot/data-self-service/internal/api/constants"
+	"github.com/TicketsBot/data-self-service/internal/utils"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwe"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,40 +31,35 @@ func Authenticate(a *api.Core) func(handler http.Handler) http.Handler {
 				return
 			}
 
-			token, err := jwt.Parse(split[1], func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-				}
-
-				return []byte(a.Config.Jwt.Secret), nil
-			})
-
+			decoded, err := utils.Base64Decode(split[1])
 			if err != nil {
 				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
 
-			if !token.Valid {
-				err := api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token")
+			tokenRaw, err := jwe.Decrypt(decoded, jwe.WithKey(jwa.DIRECT(), []byte(a.Config.Jwt.EncryptionKey)))
+			if err != nil {
+				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
 
-			claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok {
-				err := api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token")
+			token, err := jwt.Parse(tokenRaw, jwt.WithKey(jwa.HS256(), []byte(a.Config.Jwt.Secret)),
+				jwt.WithVerify(true), jwt.WithValidate(true))
+			if err != nil {
+				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
 
-			userId, extractErr := extractUserId(claims)
+			userId, extractErr := extractUserId(token)
 			if extractErr != nil {
 				a.HandleError(r.Context(), w, extractErr)
 				return
 			}
 
-			ownedGuilds, extractErr := extractOwnedGuilds(claims)
+			ownedGuilds, extractErr := extractOwnedGuilds(token)
 			if extractErr != nil {
 				a.HandleError(r.Context(), w, extractErr)
 				return
@@ -76,18 +74,13 @@ func Authenticate(a *api.Core) func(handler http.Handler) http.Handler {
 	}
 }
 
-func extractUserId(claims jwt.MapClaims) (uint64, *api.Error) {
-	userIdRaw, ok := claims["sub"]
-	if !ok {
-		return 0, api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token: missing subject")
+func extractUserId(claims jwt.Token) (uint64, *api.Error) {
+	var userIdRaw string
+	if err := claims.Get("sub", &userIdRaw); err != nil {
+		return 0, api.NewError(err, http.StatusUnauthorized, "Invalid token: invalid subject")
 	}
 
-	userIdStr, ok := userIdRaw.(string)
-	if !ok {
-		return 0, api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token: invalid subject")
-	}
-
-	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	userId, err := strconv.ParseUint(userIdRaw, 10, 64)
 	if err != nil {
 		return 0, api.NewError(err, http.StatusUnauthorized, "Invalid token: invalid subject")
 	}
@@ -95,15 +88,10 @@ func extractUserId(claims jwt.MapClaims) (uint64, *api.Error) {
 	return userId, nil
 }
 
-func extractOwnedGuilds(claims jwt.MapClaims) ([]uint64, *api.Error) {
-	guildsRaw, ok := claims["owned_guilds"]
-	if !ok {
-		return nil, api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token")
-	}
-
-	guildsSlice, ok := guildsRaw.([]interface{})
-	if !ok {
-		return nil, api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token")
+func extractOwnedGuilds(claims jwt.Token) ([]uint64, *api.Error) {
+	var guildsSlice []interface{}
+	if err := claims.Get(constants.JwtClaimOwnedGuilds, &guildsSlice); err != nil {
+		return nil, api.NewError(err, http.StatusUnauthorized, "Invalid token: invalid owned guilds")
 	}
 
 	ownedGuilds := make([]uint64, len(guildsSlice))

@@ -24,7 +24,7 @@
 <script>
     import {PUBLIC_APPLICATION_ID, PUBLIC_ROOT_URL} from "$env/static/public";
 
-    export let scopes = "identify";
+    export let scopes = "identify guilds";
     export let state = ";"
 
     const REDIRECT_URI = encodeURIComponent(`${PUBLIC_ROOT_URL}/auth/callback`);

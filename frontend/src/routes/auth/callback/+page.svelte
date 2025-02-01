@@ -36,8 +36,9 @@
         });
 
         if (res.ok) {
-            const {token} = await res.json();
+            const {token, guilds} = await res.json();
             localStorage.setItem("token", token);
+            localStorage.setItem("guilds", JSON.stringify(guilds))
 
             goto("/app");
         } else {

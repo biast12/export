@@ -72,24 +72,18 @@
     import Card from "$lib/components/Card.svelte";
     import GuildSelector from "$lib/includes/GuildSelector.svelte";
     import Button from "$lib/components/Button.svelte";
-    import {PUBLIC_BACKEND_URI} from "$env/static/public";
     import {goto} from "$app/navigation";
+    import {client} from "$lib/axios.js";
 
     let guildId = "";
 
     async function createRequest() {
-      const res = await fetch(`${PUBLIC_BACKEND_URI}/requests`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
-          request_type: "guild_transcripts",
-          guild_id: guildId
-        })
+      const res = await client.post('/requests', {
+        request_type: "guild_transcripts",
+        guild_id: guildId
       });
 
-      if (res.ok) {
+      if (res.status === 200) {
         goto("/app?request_created=true");
       } else {
         const body = await res.json();

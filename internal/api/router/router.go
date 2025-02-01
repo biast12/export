@@ -1,11 +1,14 @@
 package router
 
 import (
+	"crypto/ed25519"
 	"github.com/TicketsBot/data-self-service/internal/api"
 	"github.com/TicketsBot/data-self-service/internal/api/auth"
 	"github.com/TicketsBot/data-self-service/internal/api/health"
+	"github.com/TicketsBot/data-self-service/internal/api/keys"
 	"github.com/TicketsBot/data-self-service/internal/api/middleware"
 	"github.com/TicketsBot/data-self-service/internal/api/requests"
+	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -15,8 +18,14 @@ import (
 	"net/http"
 )
 
-func New(logger *slog.Logger, config config.ApiConfig, repository *repository.Repository) *chi.Mux {
-	core := api.NewCore(logger, config, repository)
+func New(
+	logger *slog.Logger,
+	config config.ApiConfig,
+	repository *repository.Repository,
+	artifacts artifactstore.ArtifactStore,
+	publicKey ed25519.PublicKey,
+) *chi.Mux {
+	core := api.NewCore(logger, config, repository, artifacts)
 
 	r := chi.NewRouter()
 
@@ -38,7 +47,7 @@ func New(logger *slog.Logger, config config.ApiConfig, repository *repository.Re
 		api := auth.NewAPI(core)
 
 		r.Post("/auth/exchange", api.Exchange)
-		r.Post("/auth/guilds", api.FetchGuilds)
+		//r.Post("/auth/guilds", api.FetchGuilds)
 	})
 
 	// /requests
@@ -49,6 +58,15 @@ func New(logger *slog.Logger, config config.ApiConfig, repository *repository.Re
 
 		r.Get("/requests", api.ListRequests)
 		r.Post("/requests", api.CreateRequest)
+
+		r.Get("/requests/{requestId}/artifact", api.GetArtifact)
+	})
+
+	// /keys
+	r.Group(func(r chi.Router) {
+		api := keys.NewAPI(core, publicKey)
+
+		r.Get("/keys/signing", api.SigningKey)
 	})
 
 	return r

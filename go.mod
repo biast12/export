@@ -1,6 +1,8 @@
 module github.com/TicketsBot/data-self-service
 
-go 1.22
+go 1.22.6
+
+toolchain go1.22.11
 
 require (
 	github.com/TicketsBot/common v0.0.0-20241104184641-e39c64bdcf3e
@@ -34,14 +36,22 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.11 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/httprc/v3 v3.0.0-beta1 // indirect
+	github.com/lestrrat-go/jwx/v3 v3.0.0-alpha1 // indirect
+	github.com/lestrrat-go/option v1.0.1 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	go.opentelemetry.io/otel v1.19.0 // indirect
 	go.opentelemetry.io/otel/trace v1.19.0 // indirect

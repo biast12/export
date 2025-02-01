@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/repository"
+	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/TicketsBot/data-self-service/internal/worker"
 	"github.com/TicketsBot/data-self-service/internal/worker/transcriptstore"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -51,9 +53,20 @@ func main() {
 		cfg, s3Client,
 	)
 
+	artifactClient := artifactstore.NewS3ArtifactStore(
+		logger.With(slog.String("module", "artifact_store")),
+		s3Client, cfg.ArtifactStore.Bucket, []byte(cfg.ArtifactStore.EncryptionKey),
+	)
+
+	key, err := utils.LoadKeyFromDisk(cfg.KeyPath)
+	if err != nil {
+		logger.Error("Failed to load key", "error", err)
+		os.Exit(1)
+	}
+
 	daemon := worker.NewDaemon(
 		logger.With(slog.String("module", "daemon")),
-		cfg, repository, transcriptClient)
+		cfg, key, repository, transcriptClient, artifactClient)
 	go daemon.Start()
 
 	ch := make(chan os.Signal, 1)

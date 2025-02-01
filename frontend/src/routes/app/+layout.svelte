@@ -4,6 +4,8 @@
         <span class="brand">Data Management Self Service</span>
         <div class="vertical-line"></div>
         <a href="/app">Home</a>
+        <div class="vertical-line"></div>
+        <a href="/app/public-key">Download Public Key</a>
     </div>
     <div>
         <a href="/auth/sign-out">

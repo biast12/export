@@ -39,5 +39,9 @@ func (a *API) ListRequests(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	for i, j := 0, len(dto)-1; i < j; i, j = i+1, j-1 {
+		dto[i], dto[j] = dto[j], dto[i]
+	}
+
 	a.RespondJson(w, http.StatusOK, dto)
 }
