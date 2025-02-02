@@ -53,7 +53,7 @@ func (v *Validator) ValidateGuildTranscripts(input io.ReaderAt, size int64) (*Gu
 			return nil, ErrMaximumSizeExceeded
 		}
 
-		sigSize, err := v.validateSignature(reader, f.Name, b)
+		sigSize, err := v.validateTranscriptSignature(reader, f.Name, guildId, ticketId, b)
 		if err != nil {
 			return nil, err
 		}

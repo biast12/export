@@ -29,15 +29,23 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 	}
 
 	files := make(map[string][]byte)
-	for ticketId, transcript := range transcripts {
-		files[fmt.Sprintf("transcripts/%d.json", ticketId)] = transcript
-		files[fmt.Sprintf("transcripts/%d.json.sig", ticketId)] =
-			[]byte(utils.Base64Encode(ed25519.Sign(d.privateKey, transcript)))
-	}
 
 	guildIdStr := fmt.Sprintf("%d", guildId)
 	files["guild_id.txt"] = []byte(guildIdStr)
 	files["guild_id.txt.sig"] = []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, []byte(guildIdStr))))
+
+	for ticketId, transcript := range transcripts {
+		sigData := make([]byte, 0, len(transcript)+len(guildIdStr)+2+6)
+		sigData = append(sigData, []byte(guildIdStr)...)
+		sigData = append(sigData, byte('|'))
+		sigData = append(sigData, []byte(fmt.Sprintf("%d", ticketId))...)
+		sigData = append(sigData, byte('|'))
+		sigData = append(sigData, transcript...)
+
+		files[fmt.Sprintf("transcripts/%d.json", ticketId)] = transcript
+		files[fmt.Sprintf("transcripts/%d.json.sig", ticketId)] =
+			[]byte(utils.Base64Encode(ed25519.Sign(d.privateKey, sigData)))
+	}
 
 	artifact, err := utils.BuildZip(files)
 	if err != nil {
@@ -52,7 +60,7 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 		globalArtifactSize, err = tx.Artifacts().GetGlobalSize(ctx)
 		return err
 	}); err != nil {
-		d.logger.Error("Failed to get global artifact size", err)
+		d.logger.Error("Failed to get global artifact size", "error", err)
 		return err
 	}
 
@@ -64,7 +72,7 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 	key := utils.RandomString(32)
 	expiresAt := time.Now().Add(transcriptExpiry)
 	if err := d.artifacts.Store(ctx, request.Id, key, expiresAt, artifact); err != nil {
-		d.logger.Error("Failed to store artifact", err)
+		d.logger.Error("Failed to store artifact", "error", err)
 		return err
 	}
 
@@ -79,7 +87,7 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 
 		return nil
 	}); err != nil {
-		d.logger.Error("Failed to update request status", err)
+		d.logger.Error("Failed to update request status", "error", err)
 		return err
 	}
 

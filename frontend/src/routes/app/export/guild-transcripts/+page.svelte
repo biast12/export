@@ -83,7 +83,7 @@
         guild_id: guildId
       });
 
-      if (res.status === 200) {
+      if (res.status === 201) {
         goto("/app?request_created=true");
       } else {
         const body = await res.json();

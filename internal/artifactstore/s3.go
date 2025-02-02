@@ -75,7 +75,6 @@ func (s *S3ArtifactStore) Store(ctx context.Context, requestId uuid.UUID, key st
 	s.logger.Info(
 		"Storing artifact",
 		slog.String("request_id", requestId.String()),
-		slog.String("key", key),
 		slog.Int64("size", int64(len(data))),
 	)
 	_, err = s.client.PutObject(ctx, opts)

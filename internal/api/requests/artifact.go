@@ -34,9 +34,9 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if request == nil {
+	if request == nil || request.Artifact == nil {
 		a.RespondJson(w, http.StatusNotFound, utils.Map{
-			"error": "Request not found",
+			"error": "Data export not found",
 		})
 		return
 	}
@@ -62,7 +62,7 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.Logger.Info("Fetching artifact", "requestId", requestId, "key", request.Artifact.Key, "user_id", userId)
+	a.Logger.Info("Fetching artifact", "requestId", requestId, "user_id", userId)
 
 	// Get artifact
 	bytes, err := a.Artifacts.Fetch(r.Context(), request.Artifact.RequestId, request.Artifact.Key)
