@@ -10,7 +10,8 @@ type (
 		PublicKeyPath string `env:"PUBLIC_KEY_PATH" envDefault:"./key.pem.pub"`
 
 		Server struct {
-			Address string `env:"ADDRESS" envDefault:":8080"`
+			Address        string   `env:"ADDRESS" envDefault:":8080"`
+			AllowedOrigins []string `env:"ALLOWED_ORIGINS,required"`
 		} `envPrefix:"SERVER_"`
 
 		Database DatabaseConfig `envPrefix:"DATABASE_"`
