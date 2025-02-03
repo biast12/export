@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/utils"
@@ -75,6 +76,9 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 		d.logger.Error("Failed to store artifact", "error", err)
 		return err
 	}
+
+	metrics.ArtifactsUploaded.WithLabelValues(request.Type.String()).Inc()
+	metrics.ArtifactsUploadedBytes.WithLabelValues(request.Type.String()).Add(float64(artifactSize))
 
 	if err := d.repository.Tx(ctx, func(ctx context.Context, tx repository.TransactionContext) error {
 		if err := tx.Requests().SetStatus(ctx, request.Id, model.RequestStatusCompleted); err != nil {

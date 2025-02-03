@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/data-self-service/internal/api"
 	"github.com/TicketsBot/data-self-service/internal/api/constants"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwe"
 	"github.com/lestrrat-go/jwx/v3/jwt"
@@ -84,6 +85,8 @@ func (a *API) Exchange(w http.ResponseWriter, r *http.Request) {
 		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to issue token"))
 		return
 	}
+
+	metrics.ApiTokenExchanges.Inc()
 
 	// Write response
 	w.Header().Set("Content-Type", "application/json")

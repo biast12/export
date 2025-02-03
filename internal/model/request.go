@@ -21,6 +21,10 @@ const (
 	RequestTypeGuildData        RequestType = "guild_data"
 )
 
+func (r RequestType) String() string {
+	return string(r)
+}
+
 type RequestStatus string
 
 const (
@@ -28,3 +32,7 @@ const (
 	RequestStatusFailed    RequestStatus = "failed"
 	RequestStatusCompleted RequestStatus = "completed"
 )
+
+func (r RequestStatus) String() string {
+	return string(r)
+}

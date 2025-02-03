@@ -30,6 +30,7 @@ func New(
 	r := chi.NewRouter()
 
 	// Middleware
+	r.Use(middleware.Metrics)
 	r.Use(slogchi.New(logger))
 
 	r.Use(cors.Handler(cors.Options{

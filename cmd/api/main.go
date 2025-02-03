@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/data-self-service/internal/api/router"
 	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -24,6 +25,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	metrics.StartServer(cfg.PrometheusServerAddr)
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,

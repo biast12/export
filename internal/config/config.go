@@ -9,6 +9,8 @@ type (
 	ApiConfig struct {
 		PublicKeyPath string `env:"PUBLIC_KEY_PATH" envDefault:"./key.pem.pub"`
 
+		PrometheusServerAddr string `env:"PROMETHEUS_SERVER_ADDR" envDefault:":8181"`
+
 		Server struct {
 			Address        string   `env:"ADDRESS" envDefault:":8080"`
 			AllowedOrigins []string `env:"ALLOWED_ORIGINS,required"`
@@ -35,6 +37,8 @@ type (
 
 	WorkerConfig struct {
 		KeyPath string `env:"KEY_PATH" envDefault:"./key.pem"`
+
+		PrometheusServerAddr string `env:"PROMETHEUS_SERVER_ADDR" envDefault:":8181"`
 
 		Database DatabaseConfig `envPrefix:"DATABASE_"`
 

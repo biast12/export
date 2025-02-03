@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/data-self-service/internal/artifactstore"
 	"github.com/TicketsBot/data-self-service/internal/config"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/worker/transcriptstore"
@@ -75,6 +76,8 @@ func (d *Daemon) Start() {
 				status = model.RequestStatusFailed
 			}
 			cancel()
+
+			metrics.RequestsProcessed.WithLabelValues(task.Second.Type.String(), status.String()).Inc()
 
 			if err := d.repository.Tx(context.Background(), func(ctx context.Context, tx repository.TransactionContext) error {
 				if err := tx.Requests().SetStatus(ctx, task.First.RequestId, status); err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/TicketsBot/data-self-service/internal/api"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/utils"
@@ -99,6 +100,7 @@ func (a *API) CreateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.RequestsCreated.WithLabelValues(string(request.Type)).Inc()
 	a.Logger.DebugContext(r.Context(), "Request created", "user_id", userId)
 
 	a.RespondJson(w, http.StatusCreated, request)

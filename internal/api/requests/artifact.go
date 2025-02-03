@@ -3,6 +3,7 @@ package requests
 import (
 	"context"
 	"github.com/TicketsBot/data-self-service/internal/api"
+	"github.com/TicketsBot/data-self-service/internal/metrics"
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/utils"
@@ -70,6 +71,9 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to fetch artifact"))
 		return
 	}
+
+	metrics.ArtifactsDownloaded.WithLabelValues(request.Request.Type.String()).Inc()
+	metrics.ArtifactsDownloadedBytes.WithLabelValues(request.Request.Type.String()).Add(float64(len(bytes)))
 
 	w.Header().Add("Content-Type", "application/zip")
 	w.Header().Add("Content-Length", strconv.Itoa(len(bytes)))
