@@ -67,6 +67,8 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 
 	group, _ := errgroup.WithContext(wrappedCtx)
 	for i := 0; i < c.config.Daemon.DownloadWorkers; i++ {
+		logger := logger.With(slog.Int("worker_id", i))
+
 		group.Go(func() error {
 			for objMetadata := range keysCh {
 				logger.DebugContext(ctx, "Next transcript", slog.String("key", objMetadata.key))
@@ -88,6 +90,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 					Key:    utils.Ptr(objMetadata.key),
 				})
 				if err != nil {
+					logger.ErrorContext(ctx, "Failed to download transcript", err, slog.Int("ticket_id", ticketId))
 					cancel()
 					return err
 				}
