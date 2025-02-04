@@ -8,7 +8,9 @@ import (
 	"github.com/TicketsBot/data-self-service/internal/model"
 	"github.com/TicketsBot/data-self-service/internal/repository"
 	"github.com/TicketsBot/data-self-service/internal/utils"
+	"golang.org/x/sync/errgroup"
 	"log/slog"
+	"sync"
 	"time"
 )
 
@@ -23,29 +25,64 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 
 	guildId := *request.GuildId
 
+	logger := d.logger.With(slog.Uint64("guild_id", guildId), "request_id", request.Id)
+
 	transcripts, err := d.transcripts.GetTranscriptsForGuild(ctx, guildId)
 	if err != nil {
-		d.logger.Error("Failed to get transcripts for guild", err, slog.Uint64("guild_id", guildId))
+		logger.ErrorContext(ctx, "Failed to get transcripts for guild", "error", err)
 		return err
 	}
 
+	logger.InfoContext(ctx, "Got transcripts for guild")
+
 	files := make(map[string][]byte)
+	mu := sync.Mutex{}
 
 	guildIdStr := fmt.Sprintf("%d", guildId)
 	files["guild_id.txt"] = []byte(guildIdStr)
 	files["guild_id.txt.sig"] = []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, []byte(guildIdStr))))
 
-	for ticketId, transcript := range transcripts {
-		sigData := make([]byte, 0, len(transcript)+len(guildIdStr)+2+6)
-		sigData = append(sigData, []byte(guildIdStr)...)
-		sigData = append(sigData, byte('|'))
-		sigData = append(sigData, []byte(fmt.Sprintf("%d", ticketId))...)
-		sigData = append(sigData, byte('|'))
-		sigData = append(sigData, transcript...)
+	type transcriptData struct {
+		ticketId   int
+		transcript []byte
+	}
 
-		files[fmt.Sprintf("transcripts/%d.json", ticketId)] = transcript
-		files[fmt.Sprintf("transcripts/%d.json.sig", ticketId)] =
-			[]byte(utils.Base64Encode(ed25519.Sign(d.privateKey, sigData)))
+	ch := make(chan transcriptData, len(transcripts))
+	group, _ := errgroup.WithContext(ctx)
+
+	for i := 0; i < d.config.Daemon.SigningWorkers; i++ {
+		group.Go(func() error {
+			for data := range ch {
+				sigData := make([]byte, 0, len(data.transcript)+len(guildIdStr)+2+6)
+				sigData = append(sigData, []byte(guildIdStr)...)
+				sigData = append(sigData, byte('|'))
+				sigData = append(sigData, []byte(fmt.Sprintf("%d", data.ticketId))...)
+				sigData = append(sigData, byte('|'))
+				sigData = append(sigData, data.transcript...)
+
+				signed := []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, sigData)))
+
+				mu.Lock()
+				files[fmt.Sprintf("transcripts/%d.json", data.ticketId)] = data.transcript
+				files[fmt.Sprintf("transcripts/%d.json.sig", data.ticketId)] = signed
+				mu.Unlock()
+			}
+
+			return nil
+		})
+	}
+
+	for ticketId, transcript := range transcripts {
+		ch <- transcriptData{
+			ticketId:   ticketId,
+			transcript: transcript,
+		}
+	}
+	close(ch)
+
+	if err := group.Wait(); err != nil {
+		logger.ErrorContext(ctx, "Failed to sign transcripts", "error", err)
+		return err
 	}
 
 	artifact, err := utils.BuildZip(files)
@@ -69,6 +106,8 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 		d.logger.Error("Artifact size exceeds maximum", slog.Int64("size", globalArtifactSize+artifactSize))
 		return fmt.Errorf("artifact size exceeds maximum")
 	}
+
+	logger.InfoContext(ctx, "Uploading artifact", slog.Int64("size", artifactSize))
 
 	key := utils.RandomString(32)
 	expiresAt := time.Now().Add(transcriptExpiry)

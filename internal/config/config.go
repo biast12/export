@@ -28,6 +28,11 @@ type (
 			Expiry        time.Duration `env:"EXPIRY" envDefault:"168h"`
 			EncryptionKey string        `env:"ENCRYPTION_KEY,required"`
 		} `envPrefix:"JWT_"`
+
+		Limits struct {
+			GlobalDailyDownloadGigabytes int64 `env:"GLOBAL_DAILY_DOWNLOAD_GIGABYTES" envDefault:"1000"`
+			UserDailyDownloadGigabytes   int64 `env:"USER_DAILY_DOWNLOAD_GIGABYTES" envDefault:"10"`
+		} `envPrefix:"LIMIT_"`
 	}
 
 	WorkerConfig struct {
@@ -38,6 +43,7 @@ type (
 		Daemon struct {
 			Interval        time.Duration `env:"INTERVAL" envDefault:"5s"`
 			DownloadWorkers int           `env:"DOWNLOAD_WORKERS" envDefault:"250"`
+			SigningWorkers  int           `env:"SIGNING_WORKERS" envDefault:"100"`
 		} `envPrefix:"DAEMON_"`
 
 		TranscriptS3 struct {

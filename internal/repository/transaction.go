@@ -10,6 +10,7 @@ type TransactionContext interface {
 	Requests() *RequestRepository
 	Tasks() *TaskRepository
 	Artifacts() *ArtifactRepository
+	Downloads() *DownloadRepository
 }
 
 type PostgresTransactionContext struct {
@@ -34,4 +35,8 @@ func (t *PostgresTransactionContext) Tasks() *TaskRepository {
 
 func (t *PostgresTransactionContext) Artifacts() *ArtifactRepository {
 	return NewArtifactRepository(t.tx)
+}
+
+func (t *PostgresTransactionContext) Downloads() *DownloadRepository {
+	return NewDownloadRepository(t.tx)
 }

@@ -34,9 +34,14 @@
 
                                       {#if new Date(request.artifact_expires_at) > new Date()}
                                                 <span>
-                                                  <a href="{request.download_url}" class="download" on:click={() => downloadArtifact(request.id)}>
-                                                    <i class="fa-solid fa-download"></i>
-                                                    Download
+                                                  <a href="{request.download_url}" class="download"class:downloading={downloadingArtifacts[request.id]}
+                                                     on:click={() => downloadArtifact(request.id)}>
+                                                    {#if downloadingArtifacts[request.id]}
+                                                      Downloading...
+                                                    {:else}
+                                                      <i class="fa-solid fa-download"></i>
+                                                      Download
+                                                    {/if}
                                                   </a>
                                                   (Expires in {formatExpiry(new Date(request.artifact_expires_at))})
                                                 </span>
@@ -174,6 +179,11 @@
         cursor: pointer;
     }
 
+    .download.downloading {
+        color: #727272;
+        cursor: not-allowed;
+    }
+
     @media screen and (max-width: 1000px) {
         main {
             flex-direction: column;
@@ -204,6 +214,7 @@
     };
 
     let requests = [];
+    let downloadingArtifacts = {};
 
     async function loadRequests() {
       const res = await client.get("/requests");
@@ -213,6 +224,12 @@
     }
 
     async function downloadArtifact(requestId) {
+      if (downloadingArtifacts[requestId]) {
+        return;
+      }
+
+      downloadingArtifacts[requestId] = true;
+
       const res = await client({
         url: `/requests/${requestId}/artifact`,
         method: "GET",

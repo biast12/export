@@ -63,6 +63,42 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var limitedExceeded bool
+	if err := a.Repository.Tx(r.Context(), func(ctx context.Context, tx repository.TransactionContext) error {
+		if err := tx.Downloads().Create(ctx, userId, request.Artifact.Id); err != nil {
+			return err
+		}
+
+		globalDailyBytes, err := tx.Downloads().GetDailyBytes(ctx)
+		if err != nil {
+			return err
+		}
+
+		userDailyBytes, err := tx.Downloads().GetUserDailyBytes(ctx, userId)
+		if err != nil {
+			return err
+		}
+
+		limitedExceeded = globalDailyBytes >= a.Config.Limits.GlobalDailyDownloadGigabytes*1024*1024*1024 ||
+			userDailyBytes >= a.Config.Limits.UserDailyDownloadGigabytes*1024*1024*1024
+
+		if limitedExceeded {
+			return tx.Rollback(ctx)
+		}
+
+		return nil
+	}); err != nil {
+		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to fetch download statistics"))
+		return
+	}
+
+	if limitedExceeded {
+		a.RespondJson(w, http.StatusTooManyRequests, utils.Map{
+			"error": "Daily download limit exceeded",
+		})
+		return
+	}
+
 	a.Logger.Info("Fetching artifact", "requestId", requestId, "user_id", userId)
 
 	// Get artifact
