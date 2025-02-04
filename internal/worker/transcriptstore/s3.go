@@ -8,7 +8,7 @@ import (
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/sso/types"
+	"github.com/aws/smithy-go"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"log/slog"
@@ -55,7 +55,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 
 	prefix := fmt.Sprintf("%d/", guildId)
 
-	keysCh := make(chan object, len(keys))
+	keysCh := make(chan object, transcriptCount)
 
 	mu := sync.Mutex{}
 	files := make(map[int][]byte)
@@ -71,13 +71,17 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 			for objMetadata := range keysCh {
 				ticketId, bytes, err := c.downloadTranscript(ctx, logger, prefix, objMetadata)
 				for err != nil {
-					var tooManyRequests *types.TooManyRequestsException
-					if errors.As(err, &tooManyRequests) {
+					var awsErr smithy.APIError
+					if errors.As(err, &awsErr) && awsErr.ErrorCode() == "TooManyRequests" {
 						logger.WarnContext(ctx, "Too many requests, backing off...", "error", err)
 						time.Sleep(time.Second * 2)
 						ticketId, bytes, err = c.downloadTranscript(ctx, logger, prefix, objMetadata)
 					} else {
-						logger.ErrorContext(ctx, "Failed to download transcript", "error", err)
+						logger.ErrorContext(ctx, "Failed to download transcript",
+							"error_code", awsErr.ErrorCode(),
+							"error_message", awsErr.ErrorMessage(),
+							"error_fault", awsErr.ErrorFault(),
+							"error", err)
 						cancel()
 						return err
 					}
