@@ -2,17 +2,20 @@ package transcriptstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/TicketsBot/common/encryption"
 	"github.com/TicketsBot/data-self-service/internal/config"
 	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 type S3Client struct {
@@ -52,11 +55,6 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 
 	prefix := fmt.Sprintf("%d/", guildId)
 
-	type object struct {
-		bucket string
-		key    string
-	}
-
 	keysCh := make(chan object, len(keys))
 
 	mu := sync.Mutex{}
@@ -71,45 +69,25 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 
 		group.Go(func() error {
 			for objMetadata := range keysCh {
-				logger.DebugContext(ctx, "Next transcript", slog.String("key", objMetadata.key))
-
-				if !strings.HasPrefix(objMetadata.key, prefix) {
-					cancel()
-					return fmt.Errorf("unexpected key: %s", objMetadata.key)
+				ticketId, bytes, err := c.downloadTranscript(ctx, logger, prefix, objMetadata)
+				for err != nil {
+					var tooManyRequests *types.TooManyRequestsException
+					if errors.As(err, &tooManyRequests) {
+						logger.WarnContext(ctx, "Too many requests, backing off...", "error", err)
+						time.Sleep(time.Second * 2)
+						ticketId, bytes, err = c.downloadTranscript(ctx, logger, prefix, objMetadata)
+					} else {
+						logger.ErrorContext(ctx, "Failed to download transcript", "error", err)
+						cancel()
+						return err
+					}
 				}
-
-				ticketId, err := strconv.Atoi(strings.TrimPrefix(objMetadata.key, prefix))
-				if err != nil {
-					cancel()
-					return err
-				}
-
-				logger.DebugContext(ctx, "Downloading transcript", slog.Int("ticket_id", ticketId))
-				obj, err := c.client.GetObject(ctx, &s3.GetObjectInput{
-					Bucket: utils.Ptr(objMetadata.bucket),
-					Key:    utils.Ptr(objMetadata.key),
-				})
-				if err != nil {
-					logger.ErrorContext(ctx, "Failed to download transcript", err, slog.Int("ticket_id", ticketId))
-					cancel()
-					return err
-				}
-
-				logger.DebugContext(ctx, "Reading bytes from object", slog.Int("ticket_id", ticketId))
-
-				bytes, err := io.ReadAll(obj.Body)
-				if err != nil {
-					cancel()
-					return err
-				}
-
-				logger.DebugContext(ctx, "Read bytes from object", slog.Int("ticket_id", ticketId))
 
 				mu.Lock()
 				files[ticketId] = bytes
-				logger.DebugContext(ctx, "Downloaded transcript", slog.Int("ticket_id", ticketId))
 				mu.Unlock()
 			}
+
 			return nil
 		})
 	}
@@ -147,6 +125,11 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 	return decryptedFiles, nil
 }
 
+type object struct {
+	bucket string
+	key    string
+}
+
 func (c *S3Client) listForGuild(ctx context.Context, guildId uint64) (map[string][]string, error) {
 	prefix := fmt.Sprintf("%d/", guildId)
 
@@ -178,4 +161,42 @@ func (c *S3Client) listForGuild(ctx context.Context, guildId uint64) (map[string
 	}
 
 	return keys, nil
+}
+
+func (c *S3Client) downloadTranscript(
+	ctx context.Context,
+	logger *slog.Logger,
+	prefix string,
+	objMetadata object,
+) (int, []byte, error) {
+	logger.DebugContext(ctx, "Next transcript", slog.String("key", objMetadata.key))
+
+	if !strings.HasPrefix(objMetadata.key, prefix) {
+		return 0, nil, fmt.Errorf("unexpected key: %s", objMetadata.key)
+	}
+
+	ticketId, err := strconv.Atoi(strings.TrimPrefix(objMetadata.key, prefix))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	logger.DebugContext(ctx, "Downloading transcript", slog.Int("ticket_id", ticketId))
+	obj, err := c.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: utils.Ptr(objMetadata.bucket),
+		Key:    utils.Ptr(objMetadata.key),
+	})
+	if err != nil {
+		return 0, nil, err
+	}
+
+	logger.DebugContext(ctx, "Reading bytes from object", slog.Int("ticket_id", ticketId))
+
+	bytes, err := io.ReadAll(obj.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	logger.DebugContext(ctx, "Downloaded transcript", slog.Int("ticket_id", ticketId))
+
+	return ticketId, bytes, nil
 }
