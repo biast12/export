@@ -29,7 +29,7 @@ func main() {
 	metrics.StartServer(cfg.PrometheusServerAddr)
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: utils.ParseLogLevel(cfg.LogLevel, slog.LevelInfo),
 	}))
 
 	setupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

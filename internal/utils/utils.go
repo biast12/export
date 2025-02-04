@@ -2,7 +2,9 @@ package utils
 
 import (
 	"encoding/base64"
+	"log/slog"
 	"math/rand"
+	"strings"
 )
 
 type Map map[string]interface{}
@@ -38,4 +40,19 @@ func RandomString(length int) string {
 	}
 
 	return string(bytes)
+}
+
+func ParseLogLevel(level string, defaultValue slog.Level) slog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return defaultValue
+	}
 }
