@@ -32,6 +32,8 @@ func NewS3Client(logger *slog.Logger, config config.WorkerConfig, client *s3.Cli
 }
 
 func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (map[int][]byte, error) {
+	logger := c.logger.With(slog.Uint64("guild_id", guildId))
+
 	keys, err := c.listForGuild(ctx, guildId)
 	if err != nil {
 		return nil, err
@@ -42,7 +44,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 		transcriptCount += len(objKeys)
 	}
 
-	c.logger.Info("Found transcripts for guild", slog.Uint64("guild_id", guildId), slog.Int("transcript_count", transcriptCount))
+	logger.Info("Found transcripts for guild", slog.Int("transcript_count", transcriptCount))
 
 	if transcriptCount > 500_000 {
 		return nil, fmt.Errorf("too many transcripts for guild %d: %d", guildId, transcriptCount)
@@ -67,6 +69,8 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 	for i := 0; i < c.config.Daemon.DownloadWorkers; i++ {
 		group.Go(func() error {
 			for objMetadata := range keysCh {
+				logger.DebugContext(ctx, "Next transcript", slog.String("key", objMetadata.key))
+
 				if !strings.HasPrefix(objMetadata.key, prefix) {
 					cancel()
 					return fmt.Errorf("unexpected key: %s", objMetadata.key)
@@ -78,6 +82,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 					return err
 				}
 
+				logger.DebugContext(ctx, "Downloading transcript", slog.Int("ticket_id", ticketId))
 				obj, err := c.client.GetObject(ctx, &s3.GetObjectInput{
 					Bucket: utils.Ptr(objMetadata.bucket),
 					Key:    utils.Ptr(objMetadata.key),
@@ -87,15 +92,19 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 					return err
 				}
 
+				logger.DebugContext(ctx, "Reading bytes from object", slog.Int("ticket_id", ticketId))
+
 				bytes, err := io.ReadAll(obj.Body)
 				if err != nil {
 					cancel()
 					return err
 				}
 
+				logger.DebugContext(ctx, "Read bytes from object", slog.Int("ticket_id", ticketId))
+
 				mu.Lock()
 				files[ticketId] = bytes
-				c.logger.Debug("Downloaded transcript", slog.Uint64("guild_id", guildId), slog.Int("ticket_id", ticketId))
+				logger.DebugContext(ctx, "Downloaded transcript", slog.Int("ticket_id", ticketId))
 				mu.Unlock()
 			}
 			return nil
