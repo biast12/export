@@ -15,8 +15,8 @@
         <ul>
           <li><a href="https://github.com/TicketsBot/export/tree/master/pkg/validator" class="link">
             github.com/TicketsBot/export/pkg/validator</a></li>
-          <li><a href="https://github.com/TicketsBot/export/tree/master/examples" class="link">
-            github.com/TicketsBot/export/examples</a></li>
+          <li><a href="https://github.com/TicketsBot/export/tree/master/example" class="link">
+            github.com/TicketsBot/export/example</a></li>
         </ul>
       </span>
 
