@@ -57,7 +57,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 		key    string
 	}
 
-	keysCh := make(chan object)
+	keysCh := make(chan object, len(keys))
 
 	mu := sync.Mutex{}
 	files := make(map[int][]byte)
