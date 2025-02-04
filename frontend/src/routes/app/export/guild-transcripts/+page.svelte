@@ -86,8 +86,7 @@
       if (res.status === 201) {
         goto("/app?request_created=true");
       } else {
-        const body = await res.json();
-        alert(body.error);
+        alert(res.data.error || "Unknown error occurred.");
       }
     }
 </script>
