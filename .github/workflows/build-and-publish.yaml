@@ -2,17 +2,25 @@ name: Build and Publish
 
 env:
   REGISTRY: ghcr.io
-  PACKAGE_NAME: export
   GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
   GITHUB_SHA: ${{ github.sha }}
 
 on:
   push:
     branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
   publish-image:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: api
+            dockerfile: api.Dockerfile
+          - package: worker
+            dockerfile: worker.Dockerfile
     permissions:
       contents: read
       packages: write
@@ -20,8 +28,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
@@ -33,17 +39,24 @@ jobs:
       - name: Set image name
         run: |
           echo "IMAGE_NAME=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/${PACKAGE_NAME,,}:${GITHUB_SHA}" >> ${GITHUB_ENV}
+        env:
+          PACKAGE_NAME: ${{ matrix.package }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        uses: docker/build-push-action@v4
+
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ env.IMAGE_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
