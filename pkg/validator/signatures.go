@@ -14,6 +14,8 @@ func (v *Validator) validateSignature(zipReader *zip.Reader, fileName string, da
 		return 0, err
 	}
 
+	defer f.Close()
+
 	signature, err := io.ReadAll(v.newLimitReader(f))
 	if err != nil {
 		return 0, err
