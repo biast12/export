@@ -175,7 +175,8 @@ func (c *S3Client) downloadTranscript(
 		return 0, nil, fmt.Errorf("unexpected key: %s", objMetadata.key)
 	}
 
-	ticketId, err := strconv.Atoi(strings.TrimPrefix(objMetadata.key, prefix))
+	trimmed := strings.TrimPrefix(strings.TrimPrefix(objMetadata.key, prefix), "free-")
+	ticketId, err := strconv.Atoi(trimmed)
 	if err != nil {
 		return 0, nil, err
 	}
