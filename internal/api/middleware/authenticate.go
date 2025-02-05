@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/TicketsBot/data-self-service/internal/api"
 	"github.com/TicketsBot/data-self-service/internal/api/constants"
 	"github.com/TicketsBot/data-self-service/internal/utils"
@@ -33,14 +34,14 @@ func Authenticate(a *api.Core) func(handler http.Handler) http.Handler {
 
 			decoded, err := utils.Base64Decode(split[1])
 			if err != nil {
-				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
+				err := api.NewError(fmt.Errorf("invalid token, bad encoding: %w", err), http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
 
 			tokenRaw, err := jwe.Decrypt(decoded, jwe.WithKey(jwa.DIRECT(), []byte(a.Config.Jwt.EncryptionKey)))
 			if err != nil {
-				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
+				err := api.NewError(fmt.Errorf("invalid token, failed to decode JWE: %w", err), http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
@@ -48,7 +49,7 @@ func Authenticate(a *api.Core) func(handler http.Handler) http.Handler {
 			token, err := jwt.Parse(tokenRaw, jwt.WithKey(jwa.HS256(), []byte(a.Config.Jwt.Secret)),
 				jwt.WithVerify(true), jwt.WithValidate(true))
 			if err != nil {
-				err := api.NewError(err, http.StatusUnauthorized, "Invalid token")
+				err := api.NewError(fmt.Errorf("invalid token, failed to parse JWT: %w", err), http.StatusUnauthorized, "Invalid token")
 				a.HandleError(r.Context(), w, err)
 				return
 			}
@@ -98,12 +99,14 @@ func extractOwnedGuilds(claims jwt.Token) ([]uint64, *api.Error) {
 	for i, guildIdRaw := range guildsSlice {
 		guild, ok := guildIdRaw.(string)
 		if !ok {
-			return nil, api.NewError(errors.New("unauthorized"), http.StatusUnauthorized, "Invalid token")
+			return nil, api.NewError(fmt.Errorf("invalid token, guild id was not a string"),
+				http.StatusUnauthorized, "Invalid token")
 		}
 
 		guildId, err := strconv.ParseUint(guild, 10, 64)
 		if err != nil {
-			return nil, api.NewError(err, http.StatusUnauthorized, "Invalid token")
+			return nil, api.NewError(fmt.Errorf("invalid token, guild ID was not a uint: %w", err),
+				http.StatusUnauthorized, "Invalid token")
 		}
 
 		ownedGuilds[i] = guildId
