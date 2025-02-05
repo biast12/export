@@ -35,7 +35,7 @@ func NewCore(
 }
 
 func (c *Core) HandleError(ctx context.Context, w http.ResponseWriter, err *Error) {
-	if err.StatusCode >= http.StatusInternalServerError && err.StatusCode < http.StatusInternalServerError+100 {
+	if err.StatusCode >= http.StatusBadRequest && err.StatusCode < http.StatusInternalServerError+100 {
 		c.Logger.ErrorContext(ctx, "", "error", err.Err)
 	}
 
