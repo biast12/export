@@ -77,11 +77,7 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 						time.Sleep(time.Second * 2)
 						ticketId, bytes, err = c.downloadTranscript(ctx, logger, prefix, objMetadata)
 					} else {
-						logger.ErrorContext(ctx, "Failed to download transcript",
-							"error_code", awsErr.ErrorCode(),
-							"error_message", awsErr.ErrorMessage(),
-							"error_fault", awsErr.ErrorFault(),
-							"error", err)
+						logger.ErrorContext(ctx, "Failed to download transcript", "error", err)
 						cancel()
 						return err
 					}
