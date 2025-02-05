@@ -6,6 +6,7 @@ import (
 	"github.com/TicketsBot/data-self-service/internal/api"
 	"github.com/TicketsBot/data-self-service/internal/api/constants"
 	"github.com/TicketsBot/data-self-service/internal/metrics"
+	"github.com/TicketsBot/data-self-service/internal/utils"
 	"github.com/lestrrat-go/jwx/v3/jwa"
 	"github.com/lestrrat-go/jwx/v3/jwe"
 	"github.com/lestrrat-go/jwx/v3/jwt"
@@ -93,7 +94,7 @@ func (a *API) Exchange(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(map[string]any{
-		"token":  encrypted,
+		"token":  utils.Base64Encode(encrypted),
 		"guilds": guilds,
 	})
 }
