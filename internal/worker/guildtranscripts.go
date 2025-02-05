@@ -10,6 +10,8 @@ import (
 	"github.com/TicketsBot/data-self-service/internal/utils"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -42,12 +44,23 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 	files["guild_id.txt"] = []byte(guildIdStr)
 	files["guild_id.txt.sig"] = []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, []byte(guildIdStr))))
 
+	if len(transcripts.Failed) > 0 {
+		marshalled := make([]string, 0, len(transcripts.Failed))
+		for _, ticketId := range transcripts.Failed {
+			marshalled = append(marshalled, strconv.Itoa(ticketId))
+		}
+
+		content := []byte("The following tickets failed to export:\n" + strings.Join(marshalled, ", "))
+		files["failed.txt"] = content
+		files["failed.txt.sig"] = []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, content)))
+	}
+
 	type transcriptData struct {
 		ticketId   int
 		transcript []byte
 	}
 
-	ch := make(chan transcriptData, len(transcripts))
+	ch := make(chan transcriptData, len(transcripts.Transcripts))
 	group, _ := errgroup.WithContext(ctx)
 
 	for i := 0; i < d.config.Daemon.SigningWorkers; i++ {
@@ -72,7 +85,7 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 		})
 	}
 
-	for ticketId, transcript := range transcripts {
+	for ticketId, transcript := range transcripts.Transcripts {
 		ch <- transcriptData{
 			ticketId:   ticketId,
 			transcript: transcript,

@@ -34,7 +34,7 @@ func NewS3Client(logger *slog.Logger, config config.WorkerConfig, client *s3.Cli
 	}
 }
 
-func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (map[int][]byte, error) {
+func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (*GetTranscriptsResponse, error) {
 	logger := c.logger.With(slog.Uint64("guild_id", guildId))
 
 	keys, err := c.listForGuild(ctx, guildId)
@@ -107,22 +107,28 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 	}
 
 	// Decompress + decrypt
-	decryptedFiles := make(map[int][]byte)
+	response := GetTranscriptsResponse{
+		Transcripts: make(map[int][]byte),
+		Failed:      make([]int, 0),
+	}
+
 	for ticketId, data := range files {
 		decompressed, err := encryption.Decompress(data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decompress ticket %d: %w", ticketId, err)
+			response.Failed = append(response.Failed, ticketId)
+			logger.WarnContext(ctx, "Failed to decompress ticket", "ticket_id", ticketId, "error", err)
 		}
 
 		decrypted, err := encryption.Decrypt([]byte(c.config.TranscriptS3.EncryptionKey), decompressed)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt ticket %d: %w", ticketId, err)
+			response.Failed = append(response.Failed, ticketId)
+			logger.WarnContext(ctx, "Failed to decrypt ticket", "ticket_id", ticketId, "error", err)
 		}
 
-		decryptedFiles[ticketId] = decrypted
+		response.Transcripts[ticketId] = decrypted
 	}
 
-	return decryptedFiles, nil
+	return &response, nil
 }
 
 type object struct {
