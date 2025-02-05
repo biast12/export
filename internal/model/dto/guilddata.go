@@ -45,14 +45,14 @@ type GuildData struct {
 	UserPermissions            []Permission                              `json:"user_permissions"`
 	GuildBlacklistedRoles      []uint64                                  `json:"guild_blacklisted_roles"`
 	RolePermissions            []Permission                              `json:"role_permissions"`
-	ServiceRatings             TicketUnion[int16]                        `json:"service_ratings"`
+	ServiceRatings             []TicketUnion[int16]                      `json:"service_ratings"`
 	Settings                   database.Settings                         `json:"settings"`
 	SupportTeamUsers           map[int][]uint64                          `json:"support_team_users"` // team_id -> [user_ids]
 	SupportTeamRoles           map[int][]uint64                          `json:"support_team_roles"` // team_id -> [role_ids]
 	SupportTeams               []database.SupportTeam                    `json:"support_teams"`
 	Tags                       []database.Tag                            `json:"tags"`
-	TicketClaims               TicketUnion[uint64]                       `json:"ticket_claims"`
-	TicketLastMessages         TicketUnion[database.TicketLastMessage]   `json:"ticket_last_messages"`
+	TicketClaims               []TicketUnion[uint64]                     `json:"ticket_claims"`
+	TicketLastMessages         []TicketUnion[database.TicketLastMessage] `json:"ticket_last_messages"`
 	TicketLimit                *int                                      `json:"ticket_limit"`
 	TicketAdditionalMembers    map[int][]uint64                          `json:"ticket_additional_members"` // ticket_id -> [user_ids]
 	TicketPermissions          database.TicketPermissions                `json:"ticket_permissions"`

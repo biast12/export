@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
+	"github.com/TicketsBot/database"
 	"github.com/TicketsBot/export/internal/artifactstore"
 	"github.com/TicketsBot/export/internal/config"
 	"github.com/TicketsBot/export/internal/metrics"
@@ -21,6 +22,7 @@ type Daemon struct {
 	repository  *repository.Repository
 	transcripts transcriptstore.Client
 	artifacts   artifactstore.ArtifactStore
+	database    *database.Database
 
 	shutdownCh chan struct{}
 }
