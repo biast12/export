@@ -26,6 +26,8 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger := a.Logger.With("request_id", requestId, "user_id", userId)
+
 	var request *model.RequestWithArtifact
 	if err := a.Repository.Tx(r.Context(), func(ctx context.Context, tx repository.TransactionContext) (err error) {
 		request, err = tx.Requests().GetById(ctx, requestId)
@@ -99,7 +101,7 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.Logger.Info("Fetching artifact", "requestId", requestId, "user_id", userId)
+	logger.Info("Fetching artifact")
 
 	// Get artifact
 	bytes, err := a.Artifacts.Fetch(r.Context(), request.Artifact.RequestId, request.Artifact.Key)
@@ -107,6 +109,8 @@ func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
 		a.HandleError(r.Context(), w, api.NewError(err, http.StatusInternalServerError, "Failed to fetch artifact"))
 		return
 	}
+
+	logger.Info("Got artifact")
 
 	metrics.ArtifactsDownloaded.WithLabelValues(request.Request.Type.String()).Inc()
 	metrics.ArtifactsDownloadedBytes.WithLabelValues(request.Request.Type.String()).Add(float64(len(bytes)))
