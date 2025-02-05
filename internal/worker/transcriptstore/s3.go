@@ -111,12 +111,12 @@ func (c *S3Client) GetTranscriptsForGuild(ctx context.Context, guildId uint64) (
 	for ticketId, data := range files {
 		decompressed, err := encryption.Decompress(data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decompress ticket %d: %w", ticketId, err)
 		}
 
 		decrypted, err := encryption.Decrypt([]byte(c.config.TranscriptS3.EncryptionKey), decompressed)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decrypt ticket %d: %w", ticketId, err)
 		}
 
 		decryptedFiles[ticketId] = decrypted
