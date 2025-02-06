@@ -1,4 +1,4 @@
-module github.com/TicketsBot/data-self-service
+module github.com/TicketsBot/export
 
 go 1.22.6
 
