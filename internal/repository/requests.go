@@ -27,6 +27,9 @@ var (
 
 	//go:embed sql/requests/set_status.sql
 	queryRequestsSetStatus string
+
+	//go:embed sql/requests/delete_old.sql
+	queryRequestsDeleteOld string
 )
 
 func NewRequestRepository(tx pgx.Tx) *RequestRepository {
@@ -150,4 +153,9 @@ func (r *RequestRepository) GetById(ctx context.Context, requestId uuid.UUID) (*
 func (r *RequestRepository) SetStatus(ctx context.Context, requestId uuid.UUID, status model.RequestStatus) error {
 	_, err := r.tx.Exec(ctx, queryRequestsSetStatus, status, requestId)
 	return err
+}
+
+func (r *RequestRepository) DeleteOld(ctx context.Context, threshold time.Duration) (int64, error) {
+	res, err := r.tx.Exec(ctx, queryRequestsDeleteOld, threshold)
+	return res.RowsAffected(), err
 }

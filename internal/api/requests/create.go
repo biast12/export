@@ -77,6 +77,22 @@ func (a *API) CreateRequest(w http.ResponseWriter, r *http.Request) {
 			Type:    body.RequestType,
 			GuildId: body.GuildId,
 		}
+	} else if body.RequestType == model.RequestTypeGuildData {
+		if body.GuildId == nil {
+			a.HandleError(r.Context(), w, api.NewError(nil, http.StatusBadRequest, "Guild ID required for this request type"))
+			return
+		}
+
+		if !utils.Contains(ownedGuilds, *body.GuildId) {
+			a.HandleError(r.Context(), w, api.NewError(nil, http.StatusForbidden, "User does not own this guild"))
+			return
+		}
+
+		request = model.Request{
+			UserId:  userId,
+			Type:    body.RequestType,
+			GuildId: body.GuildId,
+		}
 	} else {
 		a.HandleError(r.Context(), w, api.NewError(nil, http.StatusBadRequest, "Invalid request type"))
 		return

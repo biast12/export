@@ -50,6 +50,8 @@ type (
 			Buckets       []string `env:"BUCKETS,required"`
 			EncryptionKey string   `env:"ENCRYPTION_KEY,required"`
 		} `envPrefix:"TRANSCRIPT_S3_"`
+
+		TicketsDatabaseUri string `env:"TICKETS_DATABASE_URI,required"`
 	}
 
 	SharedConfig struct {

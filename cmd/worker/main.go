@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/TicketsBot/database"
 	"github.com/TicketsBot/export/internal/artifactstore"
 	"github.com/TicketsBot/export/internal/config"
 	"github.com/TicketsBot/export/internal/metrics"
@@ -13,6 +14,7 @@ import (
 	s3Config "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -48,6 +50,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	db, err := connectDatabase(setupCtx, cfg)
+	if err != nil {
+		logger.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+
 	cancel()
 
 	s3Client := s3.NewFromConfig(s3Cfg)
@@ -69,7 +77,7 @@ func main() {
 
 	daemon := worker.NewDaemon(
 		logger.With(slog.String("module", "daemon")),
-		cfg, key, repository, transcriptClient, artifactClient)
+		cfg, key, repository, transcriptClient, artifactClient, db)
 	go daemon.Start()
 
 	ch := make(chan os.Signal, 1)
@@ -78,4 +86,13 @@ func main() {
 
 	logger.Info("Shutting down...")
 	daemon.Shutdown()
+}
+
+func connectDatabase(ctx context.Context, cfg config.WorkerConfig) (*database.Database, error) {
+	pool, err := pgxpool.Connect(ctx, cfg.TicketsDatabaseUri)
+	if err != nil {
+		return nil, err
+	}
+
+	return database.NewDatabase(pool), nil
 }
