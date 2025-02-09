@@ -63,7 +63,7 @@
         opacity: 0.3;
     }
 
-    @media screen and (max-width: 576px) {
+    @media screen and (max-width: 732px) {
         .brand, .vertical-line:first-of-type {
             display: none;
         }
