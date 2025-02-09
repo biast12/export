@@ -7,7 +7,7 @@ import (
 
 type TicketUnion[T any] struct {
 	TicketId int `json:"ticket_id"`
-	Data     T
+	Data     T   `json:"data"`
 }
 
 type GuildData struct {
@@ -25,7 +25,7 @@ type GuildData struct {
 	CustomColors               map[int16]int                             `json:"custom_colors"`
 	EmbedFields                []database.EmbedField                     `json:"embed_fields"`
 	Embeds                     []database.CustomEmbed                    `json:"embeds"`
-	ExitSurveyResponses        []database.ExitSurveyResponse             `json:"exit_survey_responses"`
+	ExitSurveyResponses        []TicketUnion[ExitSurveyResponse]         `json:"exit_survey_responses"`
 	FeedbackEnabled            bool                                      `json:"feedback_enabled"`
 	FirstResponseTimes         []FirstResponseTime                       `json:"first_response_times"`
 	FormInputs                 []database.FormInput                      `json:"form_inputs"`
@@ -73,4 +73,10 @@ type Permission struct {
 	Snowflake uint64 `json:"snowflake,string"`
 	IsSupport bool   `json:"is_support"`
 	IsAdmin   bool   `json:"is_admin"`
+}
+
+type ExitSurveyResponse struct {
+	FormId     *int    `json:"form_id"`
+	QuestionId *int    `json:"question_id"`
+	Response   *string `json:"response"`
 }

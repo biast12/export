@@ -34,6 +34,7 @@ func NewDaemon(
 	repository *repository.Repository,
 	transcripts transcriptstore.Client,
 	artifacts artifactstore.ArtifactStore,
+	database *database.Database,
 ) *Daemon {
 	return &Daemon{
 		logger:      logger,
@@ -42,6 +43,7 @@ func NewDaemon(
 		repository:  repository,
 		transcripts: transcripts,
 		artifacts:   artifacts,
+		database:    database,
 		shutdownCh:  make(chan struct{}),
 	}
 }
@@ -49,11 +51,17 @@ func NewDaemon(
 func (d *Daemon) Start() {
 	d.logger.Info("Starting daemon", slog.Duration("interval", d.config.Daemon.Interval))
 	ticker := time.NewTicker(d.config.Daemon.Interval)
+	deleteOldTicker := time.NewTicker(time.Minute * 15)
 
 	for {
 		select {
 		case <-d.shutdownCh:
 			return
+		case <-deleteOldTicker.C:
+			if err := d.deleteOldRequests(context.Background()); err != nil {
+				d.logger.Error("Failed to delete old requests", "error", err)
+			}
+			continue
 		case <-ticker.C:
 			task, err := d.getNextTask(context.Background())
 			if err != nil {
@@ -68,7 +76,7 @@ func (d *Daemon) Start() {
 			}
 
 			var status model.RequestStatus
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 			switch d.handleNext(ctx, task) {
 			case nil:
 				d.logger.Info("Task handled successfully", slog.String("request_id", task.First.RequestId.String()))
@@ -110,6 +118,8 @@ func (d *Daemon) handleNext(ctx context.Context, next *model.Union[model.Task, m
 	switch request.Type {
 	case model.RequestTypeGuildTranscripts:
 		return d.handleGuildTranscriptsTask(ctx, task, request)
+	case model.RequestTypeGuildData:
+		return d.handleGuildDataTask(ctx, task, request)
 	default:
 		d.logger.Error("Unknown request type", slog.String("type", string(request.Type)))
 		return fmt.Errorf("unknown request type: %s", request.Type)
@@ -129,4 +139,21 @@ func (d *Daemon) getNextTask(ctx context.Context) (*model.Union[model.Task, mode
 	}
 
 	return task, nil
+}
+
+func (d *Daemon) deleteOldRequests(ctx context.Context) error {
+	timedCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
+	d.logger.Info("Deleting old requests")
+
+	return d.repository.Tx(timedCtx, func(ctx context.Context, tx repository.TransactionContext) error {
+		deleted, err := tx.Requests().DeleteOld(ctx, time.Hour*24*14)
+		if err != nil {
+			return err
+		}
+
+		d.logger.Info("Deleted old requests", slog.Int64("count", deleted))
+		return nil
+	})
 }

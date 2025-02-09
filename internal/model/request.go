@@ -10,7 +10,7 @@ type Request struct {
 	UserId    uint64        `json:"user_id,string"`
 	Type      RequestType   `json:"type"`
 	CreatedAt time.Time     `json:"created_at"`
-	GuildId   *uint64       `json:"guild_id"`
+	GuildId   *uint64       `json:"guild_id,string"`
 	Status    RequestStatus `json:"status"`
 }
 

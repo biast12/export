@@ -3,7 +3,7 @@ package validator
 import (
 	"archive/zip"
 	"encoding/json"
-	"github.com/TicketsBot/data-self-service/internal/model/dto"
+	"github.com/TicketsBot/export/pkg/dto"
 	"io"
 )
 
