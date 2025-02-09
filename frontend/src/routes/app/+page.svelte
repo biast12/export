@@ -12,7 +12,8 @@
                     <select class="action-selector" on:input={navigate}>
                         <option disabled selected>Select a data action...</option>
                         <option class="header" disabled>Transcripts</option>
-                        <option value="export-guild">Export Server Transcripts</option>
+                        <option value="export-guild-transcripts">Export Server Transcripts</option>
+                        <option value="export-guild-data">Export Server Data</option>
                     </select>
                 </div>
             </span>
@@ -58,7 +59,7 @@
                                 {/if}
 
                                 {#if request.guild_id}
-                                    <span>Server ID: <em>{request.guild_id}</em></span>
+                                    <span>Server: <em>{guilds.find(g => g.id === request.guild_id)?.name || request.guild_id}</em></span>
                                 {/if}
 
                                 <span>Requested on {new Date(request.created_at).toLocaleDateString()}</span>
@@ -210,11 +211,14 @@
     import {client} from "$lib/axios.js";
 
     const REQUEST_NAMES = {
-      guild_transcripts: "Export Server Transcripts"
+      guild_transcripts: "Export Server Transcripts",
+      guild_data: "Export Server Data",
     };
 
     let requests = [];
     let downloadingArtifacts = {};
+
+    let guilds = [];
 
     async function loadRequests() {
       const res = await client.get("/requests");
@@ -255,8 +259,11 @@
 
     function navigate(e) {
         switch (e.target.value) {
-            case "export-guild":
+            case "export-guild-transcripts":
                 goto("/app/export/guild-transcripts");
+                break;
+            case "export-guild-data":
+                goto("/app/export/guild-data");
                 break;
         }
     }
@@ -280,5 +287,10 @@
 
     onMount(() => {
         loadRequests();
+
+        const storedGuilds = window.localStorage.getItem("guilds");
+        if (storedGuilds) {
+            guilds = JSON.parse(storedGuilds);
+        }
     });
 </script>

@@ -78,6 +78,8 @@ func (v *Validator) readGuildId(reader *zip.Reader) (uint64, int64, error) {
 		return 0, 0, err
 	}
 
+	defer f.Close()
+
 	b, err := io.ReadAll(v.newLimitReader(f))
 	if err != nil {
 		return 0, 0, err
