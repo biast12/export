@@ -285,12 +285,22 @@
         return `${minutes} minute${minutes > 1 ? "s" : ""}`;
     }
 
-    onMount(() => {
-        loadRequests();
+    function attemptRefresh() {
+        if (requests.some(r => r.status === "queued")) {
+            setTimeout(async () => {
+                await loadRequests();
+                attemptRefresh();
+            }, 10000);
+        }
+    }
 
+    onMount(async () => {
         const storedGuilds = window.localStorage.getItem("guilds");
         if (storedGuilds) {
-            guilds = JSON.parse(storedGuilds);
+          guilds = JSON.parse(storedGuilds);
         }
+
+        await loadRequests();
+        attemptRefresh();
     });
 </script>
