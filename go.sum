@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/TicketsBot/common v0.0.0-20241104184641-e39c64bdcf3e h1:cYfBjPX/FhD/MCViBI2Wz2YlC2esLiTbDE65Qku2WVg=
 github.com/TicketsBot/common v0.0.0-20241104184641-e39c64bdcf3e/go.mod h1:N7zwetwx8B3RK/ZajWwMroJSyv2ZJ+bIOZWv/z8DhaM=
+github.com/TicketsBot/database v0.0.0-20250205194156-c8239ae6eb4e h1:3cYv3r/wSbTSp2Rmtk9jx3D7qpBQx6QMnOjIQbbND3w=
+github.com/TicketsBot/database v0.0.0-20250205194156-c8239ae6eb4e/go.mod h1:mpVkDO8tnnWn1pMGEphVg6YSeGIhDwLAN43lBTkpGmU=
 github.com/aws/aws-sdk-go-v2 v1.35.0 h1:jTPxEJyzjSuuz0wB+302hr8Eu9KUI+Zv8zlujMGJpVI=
 github.com/aws/aws-sdk-go-v2 v1.35.0/go.mod h1:JgstGg0JjWU1KpVJjD5H0y0yyAIpSdKEq556EI6yOOM=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3 h1:tW1/Rkad38LA15X4UQtjXZXNKsCgkshC3EbmcUmghTg=
