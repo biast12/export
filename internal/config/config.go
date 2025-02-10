@@ -41,9 +41,10 @@ type (
 		KeyPath string `env:"KEY_PATH" envDefault:"./key.pem"`
 
 		Daemon struct {
-			Interval        time.Duration `env:"INTERVAL" envDefault:"5s"`
-			DownloadWorkers int           `env:"DOWNLOAD_WORKERS" envDefault:"250"`
-			SigningWorkers  int           `env:"SIGNING_WORKERS" envDefault:"100"`
+			Interval         time.Duration `env:"INTERVAL" envDefault:"5s"`
+			DownloadWorkers  int           `env:"DOWNLOAD_WORKERS" envDefault:"250"`
+			SigningWorkers   int           `env:"SIGNING_WORKERS" envDefault:"100"`
+			CompressionLevel int           `env:"COMPRESSION_LEVEL" envDefault:"9"`
 		} `envPrefix:"DAEMON_"`
 
 		TranscriptS3 struct {

@@ -129,7 +129,7 @@ func (d *Daemon) handleGuildDataTask(ctx context.Context, task model.Task, reque
 	files["data.json"] = marshalled
 	files["data.json.sig"] = []byte(utils.Base64Encode(ed25519.Sign(d.privateKey, marshalled)))
 
-	artifact, err := utils.BuildZip(files)
+	artifact, err := utils.BuildZip(d.config, files)
 	if err != nil {
 		logger.ErrorContext(ctx, "Failed to build zip", "error", err)
 		return err

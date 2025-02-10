@@ -98,7 +98,7 @@ func (d *Daemon) handleGuildTranscriptsTask(ctx context.Context, task model.Task
 		return err
 	}
 
-	artifact, err := utils.BuildZip(files)
+	artifact, err := utils.BuildZip(d.config, files)
 	if err != nil {
 		d.logger.Error("Failed to build zip", err)
 		return err
