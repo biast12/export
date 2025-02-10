@@ -7,6 +7,7 @@ import (
 	"github.com/TicketsBot/export/internal/api/health"
 	"github.com/TicketsBot/export/internal/api/keys"
 	"github.com/TicketsBot/export/internal/api/middleware"
+	"github.com/TicketsBot/export/internal/api/oauth2"
 	"github.com/TicketsBot/export/internal/api/requests"
 	"github.com/TicketsBot/export/internal/artifactstore"
 	"github.com/TicketsBot/export/internal/config"
@@ -48,14 +49,19 @@ func New(
 		api := auth.NewAPI(core)
 
 		r.Post("/auth/exchange", api.Exchange)
-		//r.Post("/auth/guilds", api.FetchGuilds)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Authenticate(core, middleware.AuthTypeUser))
+
+			r.Get("/auth/check_token", api.CheckToken)
+		})
 	})
 
 	// /requests
 	r.Group(func(r chi.Router) {
 		api := requests.NewAPI(core)
 
-		r.Use(middleware.Authenticate(core))
+		r.Use(middleware.Authenticate(core, middleware.AuthTypeUser))
 
 		r.Get("/requests", api.ListRequests)
 		r.Post("/requests", api.CreateRequest)
@@ -68,6 +74,21 @@ func New(
 		api := keys.NewAPI(core, publicKey)
 
 		r.Get("/keys/signing", api.SigningKey)
+	})
+
+	// /oauth2
+	r.Group(func(r chi.Router) {
+		api := oauth2.NewAPI(core)
+
+		r.Get("/oauth2/client/{client_id}", api.GetClient)
+
+		// User auth
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Authenticate(core, middleware.AuthTypeUser))
+
+			r.Post("/oauth/authorize", api.Authorize)
+			r.Delete("/oauth2/client/{client_id}", api.DeleteClient)
+		})
 	})
 
 	return r

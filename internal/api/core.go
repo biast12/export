@@ -47,3 +47,11 @@ func (c *Core) RespondJson(w http.ResponseWriter, statusCode int, response inter
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(response)
 }
+
+func (c *Core) UserId(ctx context.Context) uint64 {
+	return ctx.Value("userId").(uint64)
+}
+
+func (c *Core) OwnedGuilds(ctx context.Context) []uint64 {
+	return ctx.Value("ownedGuilds").([]uint64)
+}

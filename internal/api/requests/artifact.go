@@ -15,8 +15,8 @@ import (
 )
 
 func (a *API) GetArtifact(w http.ResponseWriter, r *http.Request) {
-	userId := a.userId(r.Context())
-	ownedGuilds := a.ownedGuilds(r.Context())
+	userId := a.UserId(r.Context())
+	ownedGuilds := a.OwnedGuilds(r.Context())
 
 	requestId, err := uuid.Parse(chi.URLParam(r, "requestId"))
 	if err != nil {

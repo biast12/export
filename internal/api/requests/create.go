@@ -18,8 +18,8 @@ type CreateRequestBody struct {
 }
 
 func (a *API) CreateRequest(w http.ResponseWriter, r *http.Request) {
-	userId := a.userId(r.Context())
-	ownedGuilds := a.ownedGuilds(r.Context())
+	userId := a.UserId(r.Context())
+	ownedGuilds := a.OwnedGuilds(r.Context())
 
 	var body CreateRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

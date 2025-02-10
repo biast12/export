@@ -15,7 +15,7 @@ type ListRequestsDto struct {
 }
 
 func (a *API) ListRequests(w http.ResponseWriter, r *http.Request) {
-	userId := a.userId(r.Context())
+	userId := a.UserId(r.Context())
 
 	var requests []model.RequestWithArtifact
 	if err := a.Repository.Tx(r.Context(), func(ctx context.Context, tx repository.TransactionContext) (err error) {

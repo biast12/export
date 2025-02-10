@@ -44,3 +44,22 @@ func (r *Repository) Tx(ctx context.Context, f func(ctx context.Context, tx Tran
 		return tx.Commit(ctx)
 	}
 }
+
+func Exec0(ctx context.Context, r *Repository, f func(ctx context.Context, tx TransactionContext) error) error {
+	return r.Tx(ctx, func(ctx context.Context, tx TransactionContext) error {
+		return f(ctx, tx)
+	})
+}
+
+func Exec1[T any](ctx context.Context, r *Repository, f func(ctx context.Context, tx TransactionContext) (T, error)) (T, error) {
+	var res T
+	if err := r.Tx(ctx, func(ctx context.Context, tx TransactionContext) (err error) {
+		res, err = f(ctx, tx)
+		return
+	}); err != nil {
+		var zero T
+		return zero, err
+	}
+
+	return res, nil
+}

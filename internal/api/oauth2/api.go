@@ -1,4 +1,4 @@
-package auth
+package oauth2
 
 import (
 	"github.com/TicketsBot/export/internal/api"

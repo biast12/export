@@ -11,6 +11,7 @@ type TransactionContext interface {
 	Tasks() *TaskRepository
 	Artifacts() *ArtifactRepository
 	Downloads() *DownloadRepository
+	OAuth2() *OAuth2Repository
 }
 
 type PostgresTransactionContext struct {
@@ -39,4 +40,8 @@ func (t *PostgresTransactionContext) Artifacts() *ArtifactRepository {
 
 func (t *PostgresTransactionContext) Downloads() *DownloadRepository {
 	return NewDownloadRepository(t.tx)
+}
+
+func (t *PostgresTransactionContext) OAuth2() *OAuth2Repository {
+	return NewOAuth2Repository(t.tx)
 }
