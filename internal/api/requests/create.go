@@ -52,6 +52,10 @@ func (a *API) CreateRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if request.Request.Status == model.RequestStatusFailed {
+			continue
+		}
+
 		if request.Request.CreatedAt.After(time.Now().Add(-time.Hour * 24)) {
 			a.RespondJson(w, http.StatusBadRequest, utils.Map{
 				"error": "You have already made a request for this server in the last 24 hours",
