@@ -1,6 +1,6 @@
 <main>
     <a class="sign-in" href="{OAUTH_URL}">
-        <img src="/img/Discord-Symbol-White.png" class="discord-logo" alt="Discord logo"/>
+        <img src="/img/Discord-Symbol-White.svg" class="discord-logo" alt="Discord logo"/>
         <span>Sign in with Discord</span>
     </a>
 
