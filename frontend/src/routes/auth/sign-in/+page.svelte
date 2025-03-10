@@ -1,6 +1,6 @@
 <main>
     <a class="sign-in" href="{OAUTH_URL}">
-        <img src="/img/discord-mark-black.png" class="discord-logo" alt="Discord logo"/>
+        <img src="/img/Discord-Symbol-White.png" class="discord-logo" alt="Discord logo"/>
         <span>Sign in with Discord</span>
     </a>
 
@@ -25,8 +25,10 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 50px;
-        padding-top: 10%;
+        justify-content: center;
+        gap: 15px;
+        height: 100vh;
+        padding-top: 0;
     }
 
     .sign-in {
@@ -35,6 +37,25 @@
         gap: 10px;
         padding: 10px;
         user-select: none;
+        background-color: #5865f2;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        font-size: 1.2em;
+        padding: 17px 25px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .sign-in:hover {
+        background-color: #4752c4;
+        transform: translateY(-2px);
+    }
+
+    .sign-in:active {
+        background-color: #3c45a5;
+        transform: translateY(0);
     }
 
     .sign-in > * {
