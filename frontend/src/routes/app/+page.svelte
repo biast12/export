@@ -11,7 +11,6 @@
 
                     <select class="action-selector" on:input={navigate}>
                         <option disabled selected>Select a data action...</option>
-                        <option class="header" disabled>Transcripts</option>
                         <option value="export-guild-transcripts">Export Server Transcripts</option>
                         <option value="export-guild-data">Export Server Data</option>
                     </select>
